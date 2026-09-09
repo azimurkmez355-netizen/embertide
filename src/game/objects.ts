@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, DEPTH } from './constants';
-import { sfxSwitch, sfxCollect } from './audio';
+import { sfxSwitch, sfxCollect, sfxWispPop } from './audio';
 import type { PlateDef, LeverDef, GateDef, BoulderDef, ShardDef, WispDef, HazardDef } from './levels';
 
 export function spawnBurst(scene: Phaser.Scene, x: number, y: number, tint: number, quantity = 14): void {
@@ -146,6 +146,7 @@ export class Gate {
       duration: 550,
       ease: 'Cubic.easeIn',
     });
+    scene.cameras.main.shake(150, 0.0035);
     spawnBurst(scene, this.collider.x, this.collider.y, 0xffe6a8, 18);
     sfxSwitch();
   }
@@ -195,6 +196,7 @@ export class Boulder {
       duration: 550,
       ease: 'Cubic.easeOut',
     });
+    scene.cameras.main.shake(220, 0.006);
     spawnBurst(scene, this.sprite.x, this.sprite.y, 0xd8d0e6, 20);
   }
 
@@ -268,12 +270,15 @@ export class Wisp {
   x: number;
   y: number;
   radius = 22;
+  private scene: Phaser.Scene;
   private sprite: Phaser.GameObjects.Image;
   private glow: Phaser.GameObjects.Image;
   private def: WispDef;
   private t = 0;
+  private stunnedUntil = 0;
 
   constructor(scene: Phaser.Scene, def: WispDef) {
+    this.scene = scene;
     this.id = def.id;
     this.def = def;
     this.x = def.path[0].x;
@@ -288,13 +293,32 @@ export class Wisp {
     this.sprite = scene.add.image(this.x, this.y, 'tex-spark').setScale(1.3).setDepth(DEPTH.entities);
   }
 
+  isStunned(): boolean {
+    return this.scene.time.now < this.stunnedUntil;
+  }
+
+  pop(stunMs: number): void {
+    if (this.isStunned()) return;
+    this.stunnedUntil = this.scene.time.now + stunMs;
+    spawnBurst(this.scene, this.x, this.y, 0xffffff, 14);
+    this.scene.tweens.add({ targets: [this.sprite, this.glow], alpha: 0.15, scale: 0.6, duration: 150 });
+    sfxWispPop();
+  }
+
   update(deltaMs: number): void {
+    if (this.isStunned()) return;
     this.t += (deltaMs * this.def.speed) / 8000;
     const p = (Math.sin(this.t) + 1) / 2;
     this.x = Phaser.Math.Linear(this.def.path[0].x, this.def.path[1].x, p);
     this.y = Phaser.Math.Linear(this.def.path[0].y, this.def.path[1].y, p);
     this.sprite.setPosition(this.x, this.y);
     this.glow.setPosition(this.x, this.y);
+    if (this.sprite.alpha < 1) {
+      this.sprite.setAlpha(Math.min(1, this.sprite.alpha + 0.03));
+      this.sprite.setScale(Math.min(1.3, this.sprite.scale + 0.02));
+      this.glow.setAlpha(Math.min(0.5, this.glow.alpha + 0.015));
+      this.glow.setScale(Math.min(0.85, this.glow.scale + 0.012));
+    }
   }
 
   destroy(): void {

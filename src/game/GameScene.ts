@@ -1,13 +1,14 @@
 import Phaser from 'phaser';
-import { DEPTH, GAME_HEIGHT, GAME_WIDTH } from './constants';
+import { COLORS, DASH_COOLDOWN_MS, DEPTH, GAME_HEIGHT, GAME_WIDTH, PULSE_COOLDOWN_MS, PULSE_RADIUS, WISP_STUN_MS } from './constants';
 import { generateTextures } from './textures';
 import { Player, type Facing } from './Player';
 import { ROOMS } from './levels';
 import { buildRoom, pointInRect, type BuiltLevel } from './LevelBuilder';
+import { spawnBurst } from './objects';
 import { roomClient } from '../room';
 import type { ElementKind, PlayerNetState, RoomWorldState } from '../types';
-import { setHudConnection, setHudRoomCode, setHudShardCount, showToast } from './hud';
-import { sfxBump } from './audio';
+import { setAbilityCooldown, setHudConnection, setHudRoomCode, setHudShardCount, showToast } from './hud';
+import { sfxBump, sfxDash, sfxPulse } from './audio';
 
 type WasdKeys = Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
 
@@ -21,10 +22,14 @@ export class GameScene extends Phaser.Scene {
   private wasd!: WasdKeys;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private spaceKey!: Phaser.Input.Keyboard.Key;
+  private shiftKey!: Phaser.Input.Keyboard.Key;
+  private qKey!: Phaser.Input.Keyboard.Key;
   private currentRoomIndex = 0;
   private level!: BuiltLevel;
   private startTime = 0;
   private boulderHold: Record<string, number> = {};
+  private dashCooldownRemaining = 0;
+  private pulseCooldownRemaining = 0;
   private ended = false;
   private roomTransitionRequested = false;
 
@@ -50,7 +55,11 @@ export class GameScene extends Phaser.Scene {
     };
     this.interactKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this.spaceKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-    kb.addCapture(['SPACE', 'W', 'A', 'S', 'D', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'E']);
+    this.shiftKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+    this.qKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+    kb.addCapture(['SPACE', 'W', 'A', 'S', 'D', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'E', 'Q', 'SHIFT']);
+    this.dashCooldownRemaining = 0;
+    this.pulseCooldownRemaining = 0;
 
     this.cameras.main.setBackgroundColor('#05070d');
     this.add
@@ -139,9 +148,33 @@ export class GameScene extends Phaser.Scene {
     this.remotePlayer.setRemoteTarget(state.x, state.y, state.dir as Facing, state.moving);
   }
 
+  private fadeAndLoadRoom(index: number): void {
+    const overlay = this.add
+      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x05070d, 0)
+      .setScrollFactor(0)
+      .setDepth(DEPTH.ui + 10);
+    this.tweens.add({
+      targets: overlay,
+      alpha: 1,
+      duration: 260,
+      ease: 'Sine.easeIn',
+      onComplete: () => {
+        this.loadRoom(index);
+        this.tweens.add({
+          targets: overlay,
+          alpha: 0,
+          duration: 420,
+          delay: 90,
+          ease: 'Sine.easeOut',
+          onComplete: () => overlay.destroy(),
+        });
+      },
+    });
+  }
+
   private handleWorldState(state: RoomWorldState): void {
     if (!this.ended && state.currentRoomIndex !== this.currentRoomIndex) {
-      this.loadRoom(state.currentRoomIndex);
+      this.fadeAndLoadRoom(state.currentRoomIndex);
     }
     this.applyWorldStateToLevel(state);
     setHudShardCount(Object.keys(state.shardsCollected ?? {}).length);
@@ -240,8 +273,50 @@ export class GameScene extends Phaser.Scene {
 
   private updateWispBumps(): void {
     for (const wisp of this.level.wisps) {
+      if (wisp.isStunned()) continue;
       if (Phaser.Math.Distance.Between(this.localPlayer.x, this.localPlayer.y, wisp.x, wisp.y) < wisp.radius + 20) {
         this.localPlayer.bump(wisp.x, wisp.y);
+      }
+    }
+  }
+
+  private updateAbilities(delta: number): void {
+    this.dashCooldownRemaining = Math.max(0, this.dashCooldownRemaining - delta);
+    this.pulseCooldownRemaining = Math.max(0, this.pulseCooldownRemaining - delta);
+
+    if (Phaser.Input.Keyboard.JustDown(this.shiftKey) && this.dashCooldownRemaining <= 0 && this.localPlayer.canDash()) {
+      this.localPlayer.startDash();
+      this.dashCooldownRemaining = DASH_COOLDOWN_MS;
+      this.cameras.main.shake(70, 0.003);
+      sfxDash();
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.qKey) && this.pulseCooldownRemaining <= 0) {
+      this.triggerPulse();
+      this.pulseCooldownRemaining = PULSE_COOLDOWN_MS;
+    }
+
+    setAbilityCooldown('dash', 1 - this.dashCooldownRemaining / DASH_COOLDOWN_MS);
+    setAbilityCooldown('pulse', 1 - this.pulseCooldownRemaining / PULSE_COOLDOWN_MS);
+  }
+
+  private triggerPulse(): void {
+    const x = this.localPlayer.x;
+    const y = this.localPlayer.y;
+    const elementColor = this.localElement === 'ember' ? COLORS.emberCore : COLORS.tideCore;
+    spawnBurst(this, x, y, this.localElement === 'ember' ? COLORS.emberEdge : COLORS.tideEdge, 22);
+    this.cameras.main.shake(120, 0.006);
+    sfxPulse();
+
+    const ring = this.add.circle(x, y, PULSE_RADIUS, 0xffffff, 0);
+    ring.setStrokeStyle(3, elementColor, 0.9);
+    ring.setScale(0.05);
+    ring.setDepth(DEPTH.particlesFront);
+    this.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: 400, ease: 'Cubic.easeOut', onComplete: () => ring.destroy() });
+
+    for (const wisp of this.level.wisps) {
+      if (Phaser.Math.Distance.Between(x, y, wisp.x, wisp.y) < PULSE_RADIUS) {
+        wisp.pop(WISP_STUN_MS);
       }
     }
   }
@@ -282,7 +357,7 @@ export class GameScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     if (!this.localPlayer || !this.level) return;
 
-    this.localPlayer.updateLocal(this.cursors, this.wasd);
+    this.localPlayer.updateLocal(this.cursors, this.wasd, delta);
     this.remotePlayer?.updateRemoteInterpolation();
 
     roomClient.updateMyState({
@@ -299,6 +374,7 @@ export class GameScene extends Phaser.Scene {
     this.level.wisps.forEach((w) => w.update(delta));
 
     if (!this.ended) {
+      this.updateAbilities(delta);
       this.updatePlatesAndGates();
       this.updateLeverInteraction();
       this.updateBoulders(delta);

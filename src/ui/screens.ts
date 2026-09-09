@@ -1,7 +1,7 @@
 import { roomClient } from '../room';
 import { startGame, stopGame } from '../game/game';
 import { showToast } from '../game/hud';
-import { resumeAudio, sfxClick, sfxChime, sfxVictory, sfxError } from '../game/audio';
+import { resumeAudio, sfxClick, sfxChime, sfxVictory, sfxError, setMuted, isMuted } from '../game/audio';
 import { TOTAL_SHARDS } from '../game/levels';
 import type { PlayerNetState, RoomWorldState } from '../types';
 
@@ -254,6 +254,25 @@ function wireLeaveActions(): void {
   });
 }
 
+function wireMuteButton(): void {
+  const btn = document.getElementById('btn-mute') as HTMLButtonElement | null;
+  if (!btn) return;
+  const sync = () => {
+    const muted = isMuted();
+    btn.textContent = muted ? '🔇' : '🔊';
+    btn.classList.toggle('muted', muted);
+  };
+  btn.addEventListener('click', () => {
+    setMuted(!isMuted());
+    sync();
+    if (!isMuted()) {
+      resumeAudio();
+      sfxClick();
+    }
+  });
+  sync();
+}
+
 function wireNavButtons(): void {
   document.querySelectorAll<HTMLElement>('[data-nav]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -303,6 +322,7 @@ export function initApp(): void {
   wireLeaveActions();
   wireCopyButton();
   wirePlayAgain();
+  wireMuteButton();
 
   document.getElementById('btn-start-game')?.addEventListener('click', () => {
     sfxClick();

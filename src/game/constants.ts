@@ -5,6 +5,16 @@ export const GAME_HEIGHT = 720;
 
 export const PLAYER_SPEED = 230;
 export const PLAYER_RADIUS = 22;
+export const PLAYER_ACCEL = 0.32;
+export const PLAYER_DECEL = 0.4;
+
+export const DASH_SPEED = 620;
+export const DASH_DURATION_MS = 160;
+export const DASH_COOLDOWN_MS = 1600;
+
+export const PULSE_RADIUS = 110;
+export const PULSE_COOLDOWN_MS = 2200;
+export const WISP_STUN_MS = 3000;
 
 export const COLORS = {
   emberCore: 0xffcf4a,

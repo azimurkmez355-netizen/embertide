@@ -18,6 +18,20 @@ export function setHudShardCount(n: number): void {
   if (el) el.textContent = String(n);
 }
 
+const abilityReady: Record<string, boolean> = {};
+
+export function setAbilityCooldown(id: 'dash' | 'pulse', readyFraction: number): void {
+  const el = document.getElementById(`hud-ability-${id}`);
+  if (!el) return;
+  const pct = Math.max(0, Math.min(1, 1 - readyFraction)) * 100;
+  el.style.setProperty('--pct', String(pct));
+  const isReady = readyFraction >= 1;
+  if (isReady && !abilityReady[id]) el.classList.add('flash');
+  else if (!isReady) el.classList.remove('flash');
+  abilityReady[id] = isReady;
+  el.classList.toggle('on-cooldown', !isReady);
+}
+
 export function showToast(message: string, duration = 3200): void {
   const el = document.getElementById('toast');
   if (!el) return;

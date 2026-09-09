@@ -211,7 +211,10 @@ export const ROOMS: RoomData[] = [
       { id: 'r1_shard2', x: 1312, y: 864 },
       { id: 'r1_shard3', x: 672, y: 160 },
     ],
-    wisps: [],
+    wisps: [
+      { id: 'r1_wisp1', path: [{ x: 608, y: 608 }, { x: 800, y: 608 }], speed: 38 },
+      { id: 'r1_wisp2', path: [{ x: 608, y: 288 }, { x: 800, y: 288 }], speed: 45 },
+    ],
     exit: { x: tile(8), y: tile(1), w: tile(6), h: tile(2), nextRoom: 2 },
     decorScatters: [
       {

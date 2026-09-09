@@ -26,6 +26,7 @@
       </div>
 
       <div id="toast" class="toast"></div>
+      <button id="btn-mute" class="mute-btn" title="Sesi kapat/aç">🔊</button>
 
       <!-- ===================== MAIN MENU ===================== -->
       <section id="screen-menu" class="screen active">
@@ -75,7 +76,9 @@
             <li>Bazı kapılar <strong>iki oyuncunun aynı anda</strong> bir düğmeye basmasını ister.</li>
             <li>Kolları çevirin, köprüleri indirin ve birbirinize yol açın.</li>
             <li>Büyük kayaları hareket ettirmek için <strong>aynı anda birlikte itin</strong>.</li>
-            <li>Hareket: <kbd>WASD</kbd> veya <kbd>Ok Tuşları</kbd> — Etkileşim: <kbd>E</kbd> / <kbd>Space</kbd></li>
+            <li>Dolaşan ışık küreleri <strong>Pulse</strong> ile bir anlığına etkisizleştirilebilir.</li>
+            <li>Hareket: <kbd>WASD</kbd> / <kbd>Ok Tuşları</kbd> — Etkileşim: <kbd>E</kbd> / <kbd>Space</kbd></li>
+            <li><kbd>Shift</kbd> Hamle (Dash) — <kbd>Q</kbd> Pulse</li>
           </ul>
           <button class="btn btn-ghost" data-nav="screen-menu">Geri Dön</button>
         </div>
@@ -161,6 +164,16 @@
           <div class="hud-pill hud-connection" id="hud-connection"><span class="dot-pulse ok"></span>Bağlı</div>
           <div class="hud-pill hud-shards">✦ <span id="hud-shard-count">0</span>/9</div>
           <button id="btn-leave-game" class="hud-pill hud-leave" title="Oyundan çık">✕</button>
+        </div>
+        <div class="hud-abilities">
+          <div class="hud-ability" id="hud-ability-dash" title="Hamle (Shift)">
+            <span class="hud-ability-icon">⚡</span>
+            <span class="hud-ability-key">Shift</span>
+          </div>
+          <div class="hud-ability" id="hud-ability-pulse" title="Pulse (Q)">
+            <span class="hud-ability-icon">✨</span>
+            <span class="hud-ability-key">Q</span>
+          </div>
         </div>
       </section>
 

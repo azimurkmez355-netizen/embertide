@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, DEPTH, PLAYER_RADIUS, PLAYER_SPEED } from './constants';
+import { COLORS, DASH_DURATION_MS, DASH_SPEED, DEPTH, PLAYER_ACCEL, PLAYER_DECEL, PLAYER_RADIUS, PLAYER_SPEED } from './constants';
 import type { ElementKind } from '../types';
 
 export type Facing = 'up' | 'down' | 'left' | 'right';
@@ -17,6 +17,10 @@ export class Player extends Phaser.GameObjects.Container {
   private squashTween?: Phaser.Tweens.Tween;
   private remoteTarget: Phaser.Math.Vector2;
   private lastBumpAt = 0;
+  private lastDirX = 0;
+  private lastDirY = 1;
+  private dashTimeRemaining = 0;
+  private disposed = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, element: ElementKind, isLocal: boolean) {
     super(scene, x, y);
@@ -130,8 +134,16 @@ export class Player extends Phaser.GameObjects.Container {
   updateLocal(
     cursors: Phaser.Types.Input.Keyboard.CursorKeys,
     wasd: Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>,
+    delta: number,
   ): void {
     const body = this.body as Phaser.Physics.Arcade.Body;
+
+    if (this.dashTimeRemaining > 0) {
+      this.dashTimeRemaining = Math.max(0, this.dashTimeRemaining - delta);
+      this.setDepth(this.y);
+      return;
+    }
+
     let vx = 0;
     let vy = 0;
     if (cursors.left.isDown || wasd.left.isDown) vx -= 1;
@@ -140,16 +152,58 @@ export class Player extends Phaser.GameObjects.Container {
     if (cursors.down.isDown || wasd.down.isDown) vy += 1;
 
     const isMoving = vx !== 0 || vy !== 0;
+    let targetVx = 0;
+    let targetVy = 0;
     if (isMoving) {
       const len = Math.sqrt(vx * vx + vy * vy);
-      body.setVelocity((vx / len) * PLAYER_SPEED, (vy / len) * PLAYER_SPEED);
+      this.lastDirX = vx / len;
+      this.lastDirY = vy / len;
+      targetVx = this.lastDirX * PLAYER_SPEED;
+      targetVy = this.lastDirY * PLAYER_SPEED;
       if (Math.abs(vx) > Math.abs(vy)) this.setFacing(vx > 0 ? 'right' : 'left');
       else if (vy !== 0) this.setFacing(vy > 0 ? 'down' : 'up');
-    } else {
-      body.setVelocity(0, 0);
     }
+
+    const accel = isMoving ? PLAYER_ACCEL : PLAYER_DECEL;
+    const nvx = Phaser.Math.Linear(body.velocity.x, targetVx, accel);
+    const nvy = Phaser.Math.Linear(body.velocity.y, targetVy, accel);
+    body.setVelocity(Math.abs(nvx) < 2 ? 0 : nvx, Math.abs(nvy) < 2 ? 0 : nvy);
+
     this.setMoving(isMoving);
     this.setDepth(this.y);
+  }
+
+  canDash(): boolean {
+    return this.dashTimeRemaining <= 0;
+  }
+
+  startDash(): void {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    this.dashTimeRemaining = DASH_DURATION_MS;
+    body.setVelocity(this.lastDirX * DASH_SPEED, this.lastDirY * DASH_SPEED);
+    this.pop(1.35, 0.72);
+    this.spawnAfterimageBurst();
+  }
+
+  private spawnAfterimageBurst(): void {
+    const texKey = this.bodySprite.texture.key;
+    const tint = this.element === 'ember' ? COLORS.emberEdge : COLORS.tideEdge;
+    const flip = this.bodySprite.flipX;
+    for (let i = 0; i < 4; i++) {
+      this.scene.time.delayedCall(i * 32, () => {
+        if (this.disposed || !this.scene) return;
+        const ghost = this.scene.add
+          .image(this.x, this.y, texKey)
+          .setOrigin(0.5, 0.78)
+          .setFlipX(flip)
+          .setScale(this.scaleX * 0.95, this.scaleY * 0.95)
+          .setTint(tint)
+          .setAlpha(0.4)
+          .setDepth(this.depth - 1)
+          .setBlendMode(Phaser.BlendModes.ADD);
+        this.scene.tweens.add({ targets: ghost, alpha: 0, duration: 260, onComplete: () => ghost.destroy() });
+      });
+    }
   }
 
   setRemoteTarget(x: number, y: number, dir: Facing, moving: boolean): void {
@@ -175,6 +229,7 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   destroy(fromScene?: boolean): void {
+    this.disposed = true;
     this.trail.destroy();
     this.idleTween?.stop();
     this.squashTween?.stop();

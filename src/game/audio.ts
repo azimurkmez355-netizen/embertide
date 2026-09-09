@@ -38,6 +38,35 @@ function tone(freq: number, duration: number, type: OscillatorType, peak: number
   osc.stop(ac.currentTime + delay + duration + 0.05);
 }
 
+function sweep(freqFrom: number, freqTo: number, duration: number, type: OscillatorType, peak: number): void {
+  const ac = getCtx();
+  if (!ac) return;
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freqFrom, ac.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqTo), ac.currentTime + duration);
+  gain.gain.setValueAtTime(0, ac.currentTime);
+  gain.gain.linearRampToValueAtTime(peak, ac.currentTime + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
+  osc.connect(gain).connect(ac.destination);
+  osc.start(ac.currentTime);
+  osc.stop(ac.currentTime + duration + 0.05);
+}
+
+export function sfxDash(): void {
+  sweep(320, 900, 0.18, 'triangle', 0.16);
+}
+
+export function sfxPulse(): void {
+  sweep(180, 60, 0.35, 'sine', 0.2);
+  tone(720, 0.12, 'square', 0.08, 0.02);
+}
+
+export function sfxWispPop(): void {
+  sweep(500, 1400, 0.22, 'sawtooth', 0.14);
+}
+
 export function sfxClick(): void {
   tone(520, 0.08, 'triangle', 0.16);
 }

@@ -725,6 +725,109 @@ kbd {
   background: rgba(255, 93, 108, 0.15);
 }
 
+.hud-abilities {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  gap: 14px;
+}
+
+.hud-ability {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(18, 10, 36, 0.65);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.hud-ability::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(rgba(0, 0, 0, 0.72) calc(var(--pct, 0) * 1%), transparent 0);
+}
+
+.hud-ability.on-cooldown .hud-ability-icon {
+  opacity: 0.4;
+}
+
+.hud-ability:not(.on-cooldown) {
+  border-color: var(--gold);
+  box-shadow: 0 0 16px rgba(255, 184, 77, 0.5), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.hud-ability-icon {
+  font-size: 19px;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.hud-ability-key {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: var(--text-dim);
+  position: relative;
+  z-index: 1;
+  margin-top: 1px;
+  text-transform: uppercase;
+}
+
+.hud-ability.flash {
+  animation: ability-flash 0.4s ease-out;
+}
+
+@keyframes ability-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 184, 77, 0.8), 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 22px 6px rgba(255, 184, 77, 0), 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.mute-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 50;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--panel-border);
+  background: rgba(18, 10, 36, 0.65);
+  backdrop-filter: blur(10px);
+  color: var(--text-light);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, background 0.2s;
+}
+
+.mute-btn:hover {
+  transform: scale(1.08);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.mute-btn.muted {
+  color: var(--text-faint);
+}
+
 .toast {
   position: absolute;
   top: 70px;
