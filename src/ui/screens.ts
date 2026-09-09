@@ -103,6 +103,7 @@ async function handleCreateParty(): Promise<void> {
       showToast('Arkadaşının bağlantısı kesildi.');
       resetGuestSlotUI();
     };
+    watchForGameStart();
   } catch (e) {
     sfxError();
     showToast(friendlyError(e));
