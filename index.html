@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+    <meta name="description" content="Ember & Tide — iki kişilik, gerçek zamanlı çevrimiçi işbirlikli 2D macera oyunu." />
+    <meta name="theme-color" content="#1a1230" />
+    <title>Ember &amp; Tide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Ambient floating background used behind every DOM screen -->
+      <div class="ambient-bg" aria-hidden="true">
+        <div class="orb orb-ember"></div>
+        <div class="orb orb-tide"></div>
+        <div class="orb orb-ember orb-small"></div>
+        <div class="orb orb-tide orb-small"></div>
+        <div class="stars"></div>
+      </div>
+
+      <div id="toast" class="toast"></div>
+
+      <!-- ===================== MAIN MENU ===================== -->
+      <section id="screen-menu" class="screen active">
+        <div class="menu-card">
+          <div class="logo-mark">
+            <span class="logo-flame">🔥</span>
+            <span class="logo-drop">💧</span>
+          </div>
+          <h1 class="game-title">Ember <span class="amp">&amp;</span> Tide</h1>
+          <p class="game-tagline">İki Ruh, Ortak Bir Yolculuk</p>
+
+          <div class="menu-actions">
+            <button id="btn-create-party" class="btn btn-ember btn-lg">
+              <span class="btn-icon">🎉</span>
+              Parti Oluştur
+            </button>
+            <button id="btn-join-room" class="btn btn-tide btn-lg">
+              <span class="btn-icon">🔑</span>
+              Odaya Katıl
+            </button>
+          </div>
+
+          <button id="btn-how-to-play" class="link-btn" data-nav="screen-howto">Nasıl oynanır?</button>
+        </div>
+
+        <div class="menu-characters" aria-hidden="true">
+          <div class="char-preview char-ember">
+            <div class="char-glow"></div>
+            <div class="char-body"></div>
+          </div>
+          <div class="char-preview char-tide">
+            <div class="char-glow"></div>
+            <div class="char-body"></div>
+          </div>
+        </div>
+
+        <footer class="menu-footer">Aynı bağlantıyı iki farklı bilgisayarda açarak birlikte oynayın</footer>
+      </section>
+
+      <!-- ===================== HOW TO PLAY ===================== -->
+      <section id="screen-howto" class="screen">
+        <div class="menu-card howto-card">
+          <h2 class="panel-title">Nasıl Oynanır?</h2>
+          <ul class="howto-list">
+            <li><strong>🔥 Ember</strong> ateşe dayanıklıdır ama suya giremez.</li>
+            <li><strong>💧 Tide</strong> suda yüzebilir ama ateşe yaklaşamaz.</li>
+            <li>Bazı kapılar <strong>iki oyuncunun aynı anda</strong> bir düğmeye basmasını ister.</li>
+            <li>Kolları çevirin, köprüleri indirin ve birbirinize yol açın.</li>
+            <li>Büyük kayaları hareket ettirmek için <strong>aynı anda birlikte itin</strong>.</li>
+            <li>Hareket: <kbd>WASD</kbd> veya <kbd>Ok Tuşları</kbd> — Etkileşim: <kbd>E</kbd> / <kbd>Space</kbd></li>
+          </ul>
+          <button class="btn btn-ghost" data-nav="screen-menu">Geri Dön</button>
+        </div>
+      </section>
+
+      <!-- ===================== CREATE PARTY (waiting room) ===================== -->
+      <section id="screen-create" class="screen">
+        <div class="menu-card">
+          <h2 class="panel-title">Partin Hazır!</h2>
+          <p class="panel-sub">Bu kodu arkadaşınla paylaş, o da "Odaya Katıl" ile girsin.</p>
+
+          <div class="room-code-box">
+            <span id="room-code-text">------</span>
+            <button id="btn-copy-code" class="icon-btn" title="Kodu kopyala">📋</button>
+          </div>
+
+          <div class="lobby-slots">
+            <div class="slot slot-filled">
+              <div class="slot-avatar avatar-ember">🔥</div>
+              <span class="slot-name">Sen (Ember)</span>
+              <span class="slot-status ready">Hazır</span>
+            </div>
+            <div id="guest-slot" class="slot slot-empty">
+              <div class="slot-avatar avatar-tide">💧</div>
+              <span class="slot-name">Arkadaşın (Tide)</span>
+              <span class="slot-status waiting"><span class="dot-pulse"></span>Bekleniyor</span>
+            </div>
+          </div>
+
+          <button id="btn-start-game" class="btn btn-ember btn-lg" disabled>Oyunu Başlat</button>
+          <button class="btn btn-ghost" data-action="leave-room">Partiden Ayrıl</button>
+        </div>
+      </section>
+
+      <!-- ===================== JOIN ROOM ===================== -->
+      <section id="screen-join" class="screen">
+        <div class="menu-card">
+          <h2 class="panel-title">Odaya Katıl</h2>
+          <p class="panel-sub">Arkadaşının sana verdiği 6 haneli kodu gir.</p>
+
+          <div class="code-input-row">
+            <input id="code-digit-0" class="code-digit" maxlength="1" inputmode="numeric" autocomplete="off" />
+            <input id="code-digit-1" class="code-digit" maxlength="1" inputmode="numeric" autocomplete="off" />
+            <input id="code-digit-2" class="code-digit" maxlength="1" inputmode="numeric" autocomplete="off" />
+            <input id="code-digit-3" class="code-digit" maxlength="1" inputmode="numeric" autocomplete="off" />
+            <input id="code-digit-4" class="code-digit" maxlength="1" inputmode="numeric" autocomplete="off" />
+            <input id="code-digit-5" class="code-digit" maxlength="1" inputmode="numeric" autocomplete="off" />
+          </div>
+
+          <p id="join-error" class="error-text"></p>
+
+          <button id="btn-confirm-join" class="btn btn-tide btn-lg">Katıl</button>
+          <button class="btn btn-ghost" data-nav="screen-menu">Geri Dön</button>
+        </div>
+      </section>
+
+      <!-- ===================== WAITING FOR HOST TO START ===================== -->
+      <section id="screen-wait-start" class="screen">
+        <div class="menu-card">
+          <h2 class="panel-title">Odaya Katıldın!</h2>
+          <div class="lobby-slots">
+            <div class="slot slot-filled">
+              <div class="slot-avatar avatar-ember">🔥</div>
+              <span class="slot-name">Ev Sahibi (Ember)</span>
+              <span class="slot-status ready">Hazır</span>
+            </div>
+            <div class="slot slot-filled">
+              <div class="slot-avatar avatar-tide">💧</div>
+              <span class="slot-name">Sen (Tide)</span>
+              <span class="slot-status ready">Hazır</span>
+            </div>
+          </div>
+          <p class="panel-sub"><span class="dot-pulse"></span>Ev sahibinin oyunu başlatması bekleniyor...</p>
+          <button class="btn btn-ghost" data-action="leave-room">Partiden Ayrıl</button>
+        </div>
+      </section>
+
+      <!-- ===================== GAME ===================== -->
+      <section id="screen-game" class="screen">
+        <div id="game-container"></div>
+        <div class="hud-top">
+          <div class="hud-pill" id="hud-room-label">Oda: <strong>------</strong></div>
+          <div class="hud-pill hud-connection" id="hud-connection"><span class="dot-pulse ok"></span>Bağlı</div>
+          <div class="hud-pill hud-shards">✦ <span id="hud-shard-count">0</span>/9</div>
+          <button id="btn-leave-game" class="hud-pill hud-leave" title="Oyundan çık">✕</button>
+        </div>
+      </section>
+
+      <!-- ===================== VICTORY ===================== -->
+      <section id="screen-victory" class="screen">
+        <canvas id="confetti-canvas"></canvas>
+        <div class="menu-card victory-card">
+          <div class="victory-icon">🏆</div>
+          <h2 class="panel-title victory-title">Efsanevi İkili!</h2>
+          <p class="panel-sub">Ember ve Tide, Kristal Sanktuar'ı birlikte fethetti.</p>
+          <div class="victory-stats">
+            <div class="stat"><span class="stat-value" id="victory-time">00:00</span><span class="stat-label">Süre</span></div>
+            <div class="stat"><span class="stat-value" id="victory-shards">0/9</span><span class="stat-label">Kristal</span></div>
+          </div>
+          <div class="menu-actions">
+            <button id="btn-play-again" class="btn btn-ember btn-lg">Tekrar Oyna</button>
+            <button id="btn-back-menu" class="btn btn-ghost">Ana Menü</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
